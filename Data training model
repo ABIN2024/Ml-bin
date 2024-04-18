@@ -1,0 +1,63 @@
+import cv2
+import numpy as np
+import os
+from sklearn.model_selection import train_test_split
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+
+# Define categories or fields
+fields = {}
+
+# Load images and labels from the combined folders
+def load_dataset(dataset_paths):
+    images = []
+    labels = []
+
+    for dataset_path in dataset_paths:
+        for category_folder, label in fields.items():
+            category_path = os.path.join(dataset_path, category_folder)
+            for image_name in os.listdir(category_path):
+                image_path = os.path.join(category_path, image_name)
+                image = cv2.imread(image_path)
+                image = cv2.resize(image, (224, 224))  # Resize image to fixed dimensions
+                images.append(image)
+                labels.append(label)
+
+    return np.array(images), np.array(labels)
+
+# Define multiple dataset paths
+dataset_paths = ['...']
+images, labels = load_dataset(dataset_paths)
+
+
+# Normalize pixel values
+images = images / 255.0
+
+# Split dataset into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(images, labels, test_size=0.2, random_state=42)
+
+# Convert labels to one-hot encoding
+y_train = np.eye(len(fields))[y_train]
+y_test = np.eye(len(fields))[y_test]
+
+# Define the CNN model
+model = Sequential([
+    Conv2D(32, (3, 3), activation='relu', input_shape=(224, 224, 3)),
+    MaxPooling2D((2, 2)),
+    Conv2D(64, (3, 3), activation='relu'),
+    MaxPooling2D((2, 2)),
+    Conv2D(128, (3, 3), activation='relu'),
+    MaxPooling2D((2, 2)),
+    Flatten(),
+    Dense(512, activation='relu'),
+    Dense(len(fields), activation='softmax')
+])
+
+# Compile the model
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+# Train the model
+model.fit(X_train, y_train, epochs=15, batch_size=40, validation_data=(X_test, y_test))
+
+# Save the model for further use
+model.save('" name of model to be saved"')
